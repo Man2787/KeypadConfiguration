@@ -10,93 +10,19 @@ class MainWindow():
 
         with imgui.window(tag="Primary Window"):
             self.CreateMenuBar()
-
-            imgui.add_text("Hello world")
-
             self.CreateVirtualKeypad()
 
         imgui.set_primary_window("Primary Window", True)
+
+    def Start(self):
+        imgui.start_dearpygui()
+        imgui.destroy_context()
 
     def CreateViewport(self):
         imgui.create_context()
         imgui.create_viewport(title="Keypad Configuration")
         imgui.setup_dearpygui()
         imgui.show_viewport()
-
-    def SaveConfiguration(self):
-        print("Saving")
-        saveStr = ""
-        for btn in self.keypad_buttons:
-            index = int(btn["tag"].strip("btn_"))
-            color = btn["color"]
-            pColor = btn["pressed_color"]
-            keys = btn["keys"]
-
-            colStr =f"{color[0]},{color[1]},{color[2]}"
-            pColStr =f"{pColor[0]},{pColor[1]},{pColor[2]}"
-            keysStr ="None"
-
-            if (len(keys) > 0):
-                keysStr = ""
-                for i in range(len(keys)):
-                    keysStr += f"{keys[i]}{"," if (not i == len(keys) - 1) else ""}"
-            
-            # index|color|pressed color|keys to press|repeat
-            saveStr += f"{index}|{colStr}|{pColStr}|{keysStr}|{btn["repeat"]}\n"
-
-        print(saveStr)
-
-        with open("KeypadSave.save", "wt") as file:
-            file.write(saveStr)
-
-        print("Saved")
-
-    def LoadConfiguration(self):
-        print("Loading")
-        #TODO: Load config
-        if (os.path.exists("KeypadSave.save")):
-            with open("KeypadSave.save", "r") as file:
-                keysList = []
-                file.seek(0)
-
-                for line in file.readlines():
-                    line = line.strip(' ')
-                    #previousSaveHash += line
-                    tokens = line.split("|")
-                    colorTokens = tokens[1].split(",")
-                    pressedColorTokens = tokens[2].split(",")
-
-                    index = int(tokens[0])
-                    color = (int(colorTokens[0]), int(
-                        colorTokens[1]), int(colorTokens[2]))
-                    pressedColor = (int(pressedColorTokens[0]), int(
-                        pressedColorTokens[1]), int(pressedColorTokens[2]))
-                    repeting = tokens[4].lower() == "true"
-                    
-                    tag = f"btn_{index}"
-
-                    keys = []
-                    if (not tokens[3] == "None"):
-                        for key in tokens[3].split(","):
-                            keys.append(int(key))
-
-                    keyVar = {
-                        "tag": tag,
-                        "color": [color[0], color[1], color[2], 255],
-                        "pressed_color": [pressedColor[0], pressedColor[1], pressedColor[2], 255],
-                        "keys": keys,
-                        "repeat": repeting
-                        }
-
-
-                    keysList.append(keyVar)
-
-                self.keypad_buttons = keysList
-
-                for btn in self.keypad_buttons:
-                    imgui.bind_item_theme(btn["tag"], self.CreateButtonTheme(int(btn["tag"].strip("btn_"))))
-
-        print("Loaded")
 
     def CreateMenuBar(self):
         with imgui.menu_bar():
@@ -195,9 +121,9 @@ class MainWindow():
 
                     pyperclip.copy(f"{colStr}|{pColStr}|{keysStr}|{button["repeat"]}")
                 
-                def _PasteReleventButtonData():
+                def _PasteReleventButtonData():# thanks chatgpt
                     text = pyperclip.paste()
-                    pattern = re.compile(r"(\d+),(\d+),(\d+)\|(\d+),(\d+),(\d+)\|([^|]*)\|(True|False)")# thanks chatgpt
+                    pattern = re.compile(r"(\d+),(\d+),(\d+)\|(\d+),(\d+),(\d+)\|([^|]*)\|(True|False)")
                     match = pattern.match(text)
                     if (not match):
                         print("Text in clipboard dosent match pattern")
@@ -223,13 +149,9 @@ class MainWindow():
                     imgui.set_value("pressed_color_selection", [pr, pg, pb, 255])
                     imgui.set_value("repeat_toggle", repeat)
 
-                    for i in range(3):
-                        if (len(self.keypad_buttons[idx]["keys"]) >= i+1):
-                            imgui.set_value(f"key_choice_btn_{i}", Keys.inverseValues[self.keypad_buttons[idx]["keys"][i]])
-                        else:
-                            imgui.set_value(f"key_choice_btn_{i}", "None")
+                    self.UpdateDisplayedValues(idx)
 
-                    print(f"Pasted to Button {idx}: {button}")
+                    #print(f"Pasted to Button {idx}: {button}")
 
                 with imgui.group(horizontal=True):
                     imgui.add_button(label="Copy", callback=_CopyReleventButtonData)
@@ -239,19 +161,13 @@ class MainWindow():
                                 callback=lambda s, a, u: self.UpdateButtonRepeat(idx, a))
 
                 with imgui.group(horizontal=True):
-                    #TODO: change for correct key setting
                     imgui.add_text("Key Binding")
 
-                    with imgui.group(horizontal=False):
-                        imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_0", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 0, a))
-                    
-                    with imgui.group(horizontal=False):
-                        imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_1", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 1, a))
+                    imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_0", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 0, a))
+                    imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_1", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 1, a))
+                    imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_2", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 2, a))
 
-                    with imgui.group(horizontal=False):
-                        imgui.add_combo(["None"] + Keys.keys, tag="key_choice_btn_2", default_value="None", width=80, callback=lambda s, a, u: self.UpdateButtonKey(idx, 2, a))
-
-                    self.UpdateDisplayedValues(idx) # easiest way i can think right now
+                    self.UpdateDisplayedValues(idx) # easiest way i can think right now to sync values
 
                 with imgui.group(horizontal=True):
                     imgui.add_color_picker(label="Color", tag="color_selection", default_value=button["color"], width=200, display_rgb=True,
@@ -285,20 +201,19 @@ class MainWindow():
             # remove this key and any keys after
             while (len(keys) > keyIndex):
                 keys.pop(keyIndex)
-            print(keys)
             self.UpdateDisplayedValues(idx)
             return
 
         if (keys.__contains__(Keys.values[keyName])):
-            print(keys)
             self.UpdateDisplayedValues(idx)
             return # do nothing, don't want to have multiples of keys
         
         if (len(keys) == keyIndex):
             keys.append(Keys.values[keyName])
+        elif (len(keys) > keyIndex):
+            keys[keyIndex] = Keys.values[keyName]
 
         self.keypad_buttons[idx]["keys"] = keys
-        print(self.keypad_buttons[idx]["keys"])
 
         self.UpdateDisplayedValues(idx)
 
@@ -306,9 +221,79 @@ class MainWindow():
     def UpdateButtonRepeat(self, idx, repeat):
         self.keypad_buttons[idx]["repeat"] = repeat
     
-    def Start(self):
-        imgui.start_dearpygui()
-        imgui.destroy_context()
+    def SaveConfiguration(self):
+        print("Saving")
+        saveStr = ""
+        for btn in self.keypad_buttons:
+            index = int(btn["tag"].strip("btn_"))
+            color = btn["color"]
+            pColor = btn["pressed_color"]
+            keys = btn["keys"]
+
+            colStr =f"{color[0]},{color[1]},{color[2]}"
+            pColStr =f"{pColor[0]},{pColor[1]},{pColor[2]}"
+            keysStr ="None"
+
+            if (len(keys) > 0):
+                keysStr = ""
+                for i in range(len(keys)):
+                    keysStr += f"{keys[i]}{"," if (not i == len(keys) - 1) else ""}"
+            
+            # index|color|pressed color|keys to press|repeat
+            saveStr += f"{index}|{colStr}|{pColStr}|{keysStr}|{btn["repeat"]}\n"
+
+        with open("KeypadSave.save", "wt") as file:
+            file.write(saveStr)
+
+        print("Saved")
+
+    def LoadConfiguration(self):
+        print("Loading")
+        #TODO: Load config
+        if (os.path.exists("KeypadSave.save")):
+            with open("KeypadSave.save", "r") as file:
+                keysList = []
+                file.seek(0)
+
+                for line in file.readlines():
+                    line = line.strip(' ')
+                    #previousSaveHash += line
+                    tokens = line.split("|")
+                    colorTokens = tokens[1].split(",")
+                    pressedColorTokens = tokens[2].split(",")
+
+                    index = int(tokens[0])
+                    color = (int(colorTokens[0]), int(
+                        colorTokens[1]), int(colorTokens[2]))
+                    pressedColor = (int(pressedColorTokens[0]), int(
+                        pressedColorTokens[1]), int(pressedColorTokens[2]))
+                    repeting = tokens[4].lower() == "true"
+                    
+                    tag = f"btn_{index}"
+
+                    keys = []
+                    if (not tokens[3] == "None"):
+                        for key in tokens[3].split(","):
+                            keys.append(int(key))
+
+                    keyVar = {
+                        "tag": tag,
+                        "color": [color[0], color[1], color[2], 255],
+                        "pressed_color": [pressedColor[0], pressedColor[1], pressedColor[2], 255],
+                        "keys": keys,
+                        "repeat": repeting
+                        }
+
+
+                    keysList.append(keyVar)
+
+                self.keypad_buttons = keysList
+
+                for btn in self.keypad_buttons:
+                    imgui.bind_item_theme(btn["tag"], self.CreateButtonTheme(int(btn["tag"].strip("btn_"))))
+
+        print("Loaded")
+
 
 mw = MainWindow()
 mw.Start()
