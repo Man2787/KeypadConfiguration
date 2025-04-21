@@ -42,7 +42,7 @@ class MainWindow():
 
     def CreateVirtualKeypad(self):
         self.keypad_buttons: list[dict] = []  # Store button info for editing
-        with imgui.child_window(tag="Keypad Layout", width=700, height=700):
+        with imgui.child_window(tag="Keypad Layout", width=650, height=632):
             with imgui.table(tag="Keypad Table", 
                             policy=imgui.mvTable_SizingFixedFit,
                             header_row=False,
@@ -75,7 +75,7 @@ class MainWindow():
                             def _OpenInspector(sender, app_data, user_data):
                                 self.OpenButtonInspector(user_data)
 
-                            imgui.add_button(label="", tag=tag, width=150, height=150,
+                            imgui.add_button(label=f"{[]}", tag=tag, width=150, height=150,
                                             callback=_OpenInspector, user_data=idx)
                             imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
@@ -170,6 +170,7 @@ class MainWindow():
                     self.UpdateDisplayedValues(idx) # easiest way i can think right now to sync values
 
                 with imgui.group(horizontal=True):
+                    # might be able to use imgui.add_color_edit
                     imgui.add_color_picker(label="Color", tag="color_selection", default_value=button["color"], width=200, display_rgb=True,
                                            callback=lambda s, a, u: self.UpdateButtonColor(idx, a, is_pressed=False))
 
@@ -194,6 +195,10 @@ class MainWindow():
             else:
                 imgui.set_value(f"key_choice_btn_{i}", "None")
 
+        keysStr = self.GetkeysString(self.keypad_buttons[idx]["keys"])
+        imgui.configure_item(self.keypad_buttons[idx]["tag"], label=keysStr)
+
+
     def UpdateButtonKey(self, idx, keyIndex, keyName):
         keys: list = self.keypad_buttons[idx]["keys"]
 
@@ -216,7 +221,6 @@ class MainWindow():
         self.keypad_buttons[idx]["keys"] = keys
 
         self.UpdateDisplayedValues(idx)
-
 
     def UpdateButtonRepeat(self, idx, repeat):
         self.keypad_buttons[idx]["repeat"] = repeat
@@ -249,7 +253,6 @@ class MainWindow():
 
     def LoadConfiguration(self):
         print("Loading")
-        #TODO: Load config
         if (os.path.exists("KeypadSave.save")):
             with open("KeypadSave.save", "r") as file:
                 keysList = []
@@ -284,15 +287,26 @@ class MainWindow():
                         "repeat": repeting
                         }
 
-
                     keysList.append(keyVar)
 
                 self.keypad_buttons = keysList
 
                 for btn in self.keypad_buttons:
                     imgui.bind_item_theme(btn["tag"], self.CreateButtonTheme(int(btn["tag"].strip("btn_"))))
+                    keysStr = self.GetkeysString(btn["keys"])
+                    imgui.configure_item(btn["tag"], label=keysStr)
 
         print("Loaded")
+
+    def GetkeysString(self, list: list[int]) -> str:
+        keysStr = ""
+        for key in list:
+            if (not list[len(list) - 1] == key):
+                keysStr += f"{Keys.inverseValues[key]}, "
+            else:
+                keysStr += f"{Keys.inverseValues[key]}"
+
+        return keysStr
 
 
 mw = MainWindow()
