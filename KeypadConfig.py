@@ -305,31 +305,6 @@ class MainWindow():
 
     def UpdateButtonRepeat(self, idx, repeat):
         self.keypad_buttons[idx]["repeat"] = repeat
-
-    '''
-    def CreateVirtualKeypad(self):
-        #TODO: add a 4x4 button grid that displays buttons with a 1:1 aspect ratio
-        #TODO: the buttons need to open a inspector window where you can change the buttons properties ie. color, pressed color, keys, repeting
-        #TODO: the buttons are normally color but when hovering they display the pressed color
-
-        layout_child = imgui.generate_uuid()
-        with imgui.child_window(tag=layout_child, width=700, height=700):
-            layout_table = imgui.generate_uuid()
-            with imgui.table(tag=layout_table, policy=imgui.mvTable_SizingFixedFit, header_row=False, row_background=False,
-                                borders_innerH=True, borders_outerH=True, borders_innerV=True,
-                                borders_outerV=True, delay_search=True) as table_id:
-
-                imgui.add_table_column(label="Header 1")
-                imgui.add_table_column(label="Header 2")
-                imgui.add_table_column(label="Header 3")
-                imgui.add_table_column(label="Header 4")
-
-                for i in range(4):
-                    with imgui.table_row():
-                        for j in range(4):
-                            imgui.add_text(f"")
-                            #imgui.add_text(f"Row{i} Column{j}")
-    '''
     
     def Start(self):
         imgui.start_dearpygui()
