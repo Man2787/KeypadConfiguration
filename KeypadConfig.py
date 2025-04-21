@@ -1,4 +1,6 @@
 import dearpygui.dearpygui as imgui
+import pyperclip
+import re
 
 class MainWindow():
     def __init__(self):
@@ -25,8 +27,8 @@ class MainWindow():
         for btn in self.keypad_buttons:
             index = int(btn["tag"].strip("btn_"))
             color = btn["color"]
-            keys = btn["keys"]
             pColor = btn["pressed_color"]
+            keys = btn["keys"]
 
             colStr =f"{color[0]},{color[1]},{color[2]}"
             pColStr =f"{pColor[0]},{pColor[1]},{pColor[2]}"
@@ -96,31 +98,29 @@ class MainWindow():
                                 "repeat": False
                             })
 
-                            def _open_inspector(sender, app_data, user_data):
+                            def _OpenInspector(sender, app_data, user_data):
                                 self.OpenButtonInspector(user_data)
 
                             imgui.add_button(tag=tag, width=150, height=150,
-                                            callback=_open_inspector, user_data=idx)
+                                            callback=_OpenInspector, user_data=idx)
                             imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
     def CreateButtonTheme(self, idx):
         """Creates a custom theme for a button to show pressed color on hover."""
         button_info = self.keypad_buttons[idx]
         theme_tag = f"theme_{idx}"
+        button_tag = button_info["tag"]
 
         if (imgui.does_item_exist(theme_tag)):
-            print("deleting item")
+            imgui.bind_item_theme(button_tag, 0)  # Unbind any theme
             imgui.delete_item(theme_tag)
 
-        with imgui.theme(tag=theme_tag):
-            print("In theme")
+        with imgui.theme(tag=theme_tag):# getting an error here when called after the first time
             with imgui.theme_component(imgui.mvButton):
-                print("In component")
                 imgui.add_theme_color(imgui.mvThemeCol_Button, button_info["color"])
                 imgui.add_theme_color(imgui.mvThemeCol_ButtonHovered, button_info["pressed_color"])
                 imgui.add_theme_color(imgui.mvThemeCol_ButtonActive, button_info["pressed_color"])
         
-        print("returning")
         return theme_tag
 
     def OpenButtonInspector(self, idx):
@@ -143,6 +143,51 @@ class MainWindow():
 
                 imgui.add_color_picker(label="Pressed Color", default_value=button["pressed_color"],
                                         callback=lambda s, a, u: self.UpdateButtonColor(idx, a, is_pressed=True))
+                
+                def _CopyReleventThemeData():
+                    color = button["color"]
+                    pColor = button["pressed_color"]
+                    keys = button["keys"]
+
+                    colStr =f"{color[0]},{color[1]},{color[2]}"
+                    pColStr =f"{pColor[0]},{pColor[1]},{pColor[2]}"
+                    keysStr ="None"
+
+                    if (len(keys) > 0):
+                        keysStr = ""
+                        for i in range(len(keys)):
+                            keysStr += f"{keys[i]}{"," if (not i == len(keys) - 1) else ""}"
+
+                    pyperclip.copy(f"{colStr}|{pColStr}|{keysStr}|{button["repeat"]}")
+                
+                def _PasteReleventThemeData():
+                    text = pyperclip.paste()
+                    pattern = re.compile(r"(\d+),(\d+),(\d+)\|(\d+),(\d+),(\d+)\|([^|]*)\|(True|False)")
+                    match = pattern.match(text)
+                    if (not match):
+                        print("Text in clipboard dosent match pattern")
+                        return
+                    r, g, b = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                    pr, pg, pb = int(match.group(4)), int(match.group(5)), int(match.group(6))
+                    key_str = match.group(7)
+                    repeat = match.group(8) == "True"
+
+                    keys = [k.strip() for k in key_str.split(",")] if key_str.strip() else []
+
+                    button = self.keypad_buttons[idx]
+                    button["color"] = [r, g, b, 255]
+                    button["pressed_color"] = [pr, pg, pb, 255]
+                    button["keys"] = keys
+                    button["repeat"] = repeat
+
+                    # Update theme to reflect new colors
+                    tag = button["tag"]
+                    imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
+
+                    print(f"Pasted to Button {idx}: {button}")
+
+                imgui.add_button(label="Copy", callback=_CopyReleventThemeData)
+                imgui.add_button(label="Paste", callback=_PasteReleventThemeData)
 
     def UpdateButtonColor(self, idx, color, is_pressed=False):
         if is_pressed:
