@@ -21,17 +21,26 @@ class MainWindow():
 
     def SaveConfiguration(self):
         print("Saving")
-        #TODO: Save config
-        #testing
         saveStr = ""
         for btn in self.keypad_buttons:
             index = int(btn["tag"].strip("btn_"))
             color = btn["color"]
+            keys = btn["keys"]
             pColor = btn["pressed_color"]
-            saveStr += f"{index}|{color[0]},{color[1]},{color[2]}|{5}|{5}\r\n"
+
+            colStr =f"{color[0]},{color[1]},{color[2]}"
+            pColStr =f"{pColor[0]},{pColor[1]},{pColor[2]}"
+            keysStr ="None"
+            # index|color|pressed color|keys to press|repeat
+            if (len(keys) > 0):
+                keysStr = ""
+                for i in range(len(keys)):
+                    keysStr += f"{keys[i]}{"," if (not i == len(keys) - 1) else ""}"
+            saveStr += f"{index}|{colStr}|{pColStr}|{keysStr}|{btn["repeat"]}\r\n"
 
         print(saveStr)
 
+        #TODO: Save config
         print("Saved")
 
     def LoadConfiguration(self):
@@ -83,7 +92,7 @@ class MainWindow():
                                 "tag": tag,# key index = int(tag.strip("btn_"))
                                 "color": default_color,
                                 "pressed_color": pressed_color,
-                                "key": f"Key {idx}",
+                                "keys": [115, 118],
                                 "repeat": False
                             })
 
@@ -92,21 +101,26 @@ class MainWindow():
 
                             imgui.add_button(tag=tag, width=150, height=150,
                                             callback=_open_inspector, user_data=idx)
-                            imgui.bind_item_theme(tag, self.CreateHoverTheme(idx))
+                            imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
-    def CreateHoverTheme(self, idx):
+    def CreateButtonTheme(self, idx):
         """Creates a custom theme for a button to show pressed color on hover."""
         button_info = self.keypad_buttons[idx]
         theme_tag = f"theme_{idx}"
 
-        if imgui.does_item_exist(theme_tag):
+        if (imgui.does_item_exist(theme_tag)):
+            print("deleting item")
             imgui.delete_item(theme_tag)
 
         with imgui.theme(tag=theme_tag):
+            print("In theme")
             with imgui.theme_component(imgui.mvButton):
+                print("In component")
                 imgui.add_theme_color(imgui.mvThemeCol_Button, button_info["color"])
                 imgui.add_theme_color(imgui.mvThemeCol_ButtonHovered, button_info["pressed_color"])
                 imgui.add_theme_color(imgui.mvThemeCol_ButtonActive, button_info["pressed_color"])
+        
+        print("returning")
         return theme_tag
 
     def OpenButtonInspector(self, idx):
@@ -114,11 +128,11 @@ class MainWindow():
         button = self.keypad_buttons[idx]
 
         if not imgui.does_item_exist("Button Inspector"):
-            with imgui.window(label=f"Inspector - Button {idx}", tag="Button Inspector", width=300, height=300, modal=True, no_resize=False, on_close=lambda:imgui.delete_item("Button Inspector")):
+            with imgui.window(label=f"Inspector - Button {idx}", tag="Button Inspector", width=400, height=500, modal=True, no_resize=False, on_close=lambda:imgui.delete_item("Button Inspector")):
                 imgui.add_text(f"Editing Button {idx}")
 
                 #TODO: change for correct key setting
-                imgui.add_input_text(label="Key Binding", default_value=button["key"],
+                imgui.add_input_text(label="Key Binding", default_value=button["keys"],
                                     callback=lambda s, a, u: self.UpdateButtonKey(idx, a))
                 
                 imgui.add_checkbox(label="Repeat", default_value=button["repeat"],
@@ -132,16 +146,19 @@ class MainWindow():
 
     def UpdateButtonColor(self, idx, color, is_pressed=False):
         if is_pressed:
-            self.keypad_buttons[idx]["pressed_color"] = color
+            self.keypad_buttons[idx]["pressed_color"] = [round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), 255]
         else:
-            self.keypad_buttons[idx]["color"] = color
+            self.keypad_buttons[idx]["color"] = [round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), 255]
+
+        print(self.keypad_buttons[idx]["color"])
+        print(self.keypad_buttons[idx]["pressed_color"])
 
         # Re-apply theme
         tag = self.keypad_buttons[idx]["tag"]
-        imgui.bind_item_theme(tag, self.CreateHoverTheme(idx))
+        imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
     def UpdateButtonKey(self, idx, key):
-        self.keypad_buttons[idx]["key"] = key
+        self.keypad_buttons[idx]["keys"] = key
 
     def UpdateButtonRepeat(self, idx, repeat):
         self.keypad_buttons[idx]["repeat"] = repeat
