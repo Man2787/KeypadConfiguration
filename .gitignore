@@ -1,4 +1,8 @@
 **.pyc
+**.spec
+
+/build
+/dist
 
 /Keypad.py
 /dumbdumb.py

@@ -75,7 +75,7 @@ class MainWindow():
                             def _OpenInspector(sender, app_data, user_data):
                                 self.OpenButtonInspector(user_data)
 
-                            imgui.add_button(label=f"{[]}", tag=tag, width=150, height=150,
+                            imgui.add_button(label=f"", tag=tag, width=150, height=150,
                                             callback=_OpenInspector, user_data=idx)
                             imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
@@ -102,7 +102,7 @@ class MainWindow():
         button = self.keypad_buttons[idx]
 
         if not imgui.does_item_exist("Button Inspector"):
-            with imgui.window(label=f"Inspector - Button {idx}", tag="Button Inspector", width=600, height=400, modal=True, no_resize=False, on_close=lambda:imgui.delete_item("Button Inspector")):
+            with imgui.window(label=f"Inspector - Button {idx}", tag="Button Inspector", autosize=True, width=600, height=400, modal=True, no_resize=True, on_close=lambda:imgui.delete_item("Button Inspector")):
                 imgui.add_text(f"Editing Button {idx}")
 
                 def _CopyReleventButtonData():
@@ -197,7 +197,6 @@ class MainWindow():
 
         keysStr = self.GetkeysString(self.keypad_buttons[idx]["keys"])
         imgui.configure_item(self.keypad_buttons[idx]["tag"], label=keysStr)
-
 
     def UpdateButtonKey(self, idx, keyIndex, keyName):
         keys: list = self.keypad_buttons[idx]["keys"]
