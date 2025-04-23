@@ -40,8 +40,8 @@ Once the GUI launches, you can:
 * Edit the button's color, pressed color, key bindings, and repeat setting.
 * Use the menu bar to save or load configurations to/from KeypadSave.save.
 
-> **Note:**  
+> [!NOTE]
 > Make sure to save your configuration before closing the app to preserve your changes.
 
-> **Important:**  
+> [!IMPORTANT]
 > At the moment this is unable to save directly to the Raspberry Pi so you have to manualy bring the KeypadSave.save file onto the board.
