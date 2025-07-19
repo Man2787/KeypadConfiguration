@@ -1,5 +1,8 @@
+import ctypes # used for windll.kernel32.GetVolumeInformationW and create_unicode_buffer
+
+import VersionInfo
 import dearpygui.dearpygui as imgui
-import pyperclip
+import pyperclip # copy pasting
 import re
 import os
 import Keys
@@ -14,21 +17,27 @@ class MainWindow():
 
         imgui.set_primary_window("Primary Window", True)
 
+
     def Start(self):
         imgui.start_dearpygui()
         imgui.destroy_context()
 
+
     def CreateViewport(self):
         imgui.create_context()
-        imgui.create_viewport(title="Keypad Configuration")
+        imgui.create_viewport(title=f"Keypad Configuration {VersionInfo.VERSION}")
         imgui.setup_dearpygui()
         imgui.show_viewport()
+
 
     def CreateMenuBar(self):
         with imgui.menu_bar():
             with imgui.menu(label="File", tag="file_menu"):
                 imgui.add_menu_item(label="Save", callback=self.SaveConfiguration)
                 imgui.add_menu_item(label="Load", callback=self.LoadConfiguration)
+
+            imgui.add_menu_item(label="Sync", callback=self.SyncWithRaspberryPi)
+
             with imgui.menu(label="Tools"):
                 # small useful thingey
                 imgui.add_menu_item(label="Show About", callback=lambda:imgui.show_tool(imgui.mvTool_About))
@@ -39,6 +48,7 @@ class MainWindow():
                 imgui.add_menu_item(label="Show Font Manager", callback=lambda:imgui.show_tool(imgui.mvTool_Font))
                 imgui.add_menu_item(label="Show Item Registry", callback=lambda:imgui.show_tool(imgui.mvTool_ItemRegistry))
                 imgui.add_menu_item(label="Show Stack Tool", callback=lambda:imgui.show_tool(imgui.mvTool_Stack))
+
 
     def CreateVirtualKeypad(self):
         self.keypad_buttons: list[dict] = []  # Store button info for editing
@@ -79,6 +89,7 @@ class MainWindow():
                                             callback=_OpenInspector, user_data=idx)
                             imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
 
+
     def CreateButtonTheme(self, idx):
         """Creates a custom theme for a button to show pressed color on hover."""
         button_info = self.keypad_buttons[idx]
@@ -96,6 +107,7 @@ class MainWindow():
                 imgui.add_theme_color(imgui.mvThemeCol_ButtonActive, button_info["pressed_color"])
         
         return theme_tag
+
 
     def OpenButtonInspector(self, idx):
         """Opens an inspector window to edit a button's properties."""
@@ -177,6 +189,7 @@ class MainWindow():
                     imgui.add_color_picker(label="Pressed Color", tag="pressed_color_selection", default_value=button["pressed_color"], width=200, display_rgb=True,
                                            callback=lambda s, a, u: self.UpdateButtonColor(idx, a, is_pressed=True))
 
+
     def UpdateButtonColor(self, idx, color, is_pressed=False):
         if is_pressed:
             self.keypad_buttons[idx]["pressed_color"] = [round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), 255]
@@ -186,6 +199,7 @@ class MainWindow():
         # Re-apply theme
         tag = self.keypad_buttons[idx]["tag"]
         imgui.bind_item_theme(tag, self.CreateButtonTheme(idx))
+
 
     def UpdateDisplayedValues(self, idx):
         #set all displayed values
@@ -197,6 +211,7 @@ class MainWindow():
 
         keysStr = self.GetkeysString(self.keypad_buttons[idx]["keys"])
         imgui.configure_item(self.keypad_buttons[idx]["tag"], label=keysStr)
+
 
     def UpdateButtonKey(self, idx, keyIndex, keyName):
         keys: list = self.keypad_buttons[idx]["keys"]
@@ -221,9 +236,11 @@ class MainWindow():
 
         self.UpdateDisplayedValues(idx)
 
+
     def UpdateButtonRepeat(self, idx, repeat):
         self.keypad_buttons[idx]["repeat"] = repeat
-    
+
+
     def SaveConfiguration(self):
         print("Saving")
         saveStr = ""
@@ -249,6 +266,7 @@ class MainWindow():
             file.write(saveStr)
 
         print("Saved")
+
 
     def LoadConfiguration(self):
         print("Loading")
@@ -297,6 +315,30 @@ class MainWindow():
 
         print("Loaded")
 
+
+    def SyncWithRaspberryPi(self) -> None:
+        if not imgui.does_item_exist("Update Raspberry pi Window"):
+            with imgui.window(label=f"Update Raspberry pi", tag="Update Raspberry pi Window", autosize=True, width=600, height=400, modal=True, no_resize=True, on_close=lambda:imgui.delete_item("Update Raspberry pi Window")):
+
+                def _OnSyncRPIButtonPressed() -> None: # this part actualy does the updating
+                    with open(f"{drive}KeypadSave.save", "wt") as file:
+                        file.write(open("KeypadSave.save", "r").read())
+
+                for drive in os.listdrives():
+                    name = self.GetDriveName(drive)
+                    if (name == "CIRCUITPY"): # this is only tested on my raspberry pi
+                        # found the drive to use
+                        imgui.add_text(f"Board detected at {drive}")
+                        button = imgui.add_button(label="Sync keypad", callback=_OnSyncRPIButtonPressed)
+                        with imgui.tooltip(button, label="Sync warning"):
+                            imgui.add_text("will delete current configuration on the board")
+
+                        return # board was detected so return
+                
+                imgui.add_text("Board not detected")
+                imgui.add_text("Make sure the board is connected")
+
+
     def GetkeysString(self, list: list[int]) -> str:
         keysStr = ""
         for key in list:
@@ -306,6 +348,24 @@ class MainWindow():
                 keysStr += f"{Keys.inverseValues[key]}"
 
         return keysStr
+
+
+    def GetDriveName(self, driveName:str) -> str:
+        volumeNameBuffer = ctypes.create_unicode_buffer(1024)
+        fileSystemNameBuffer = ctypes.create_unicode_buffer(1024)
+
+        rc = ctypes.windll.kernel32.GetVolumeInformationW(
+            ctypes.c_wchar_p(driveName),
+            volumeNameBuffer,
+            ctypes.sizeof(volumeNameBuffer),
+            None,
+            None,
+            None,
+            fileSystemNameBuffer,
+            ctypes.sizeof(fileSystemNameBuffer)
+        )
+
+        return volumeNameBuffer.value
 
 
 mw = MainWindow()

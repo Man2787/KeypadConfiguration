@@ -39,9 +39,7 @@ Once the GUI launches, you can:
 * Click any button on the virtual keypad to open an inspector window.
 * Edit the button's color, pressed color, key bindings, and repeat setting.
 * Use the menu bar to save or load configurations to/from KeypadSave.save.
+* Sync the Keypad save file to use your most recent save.
 
 > [!NOTE]
-> Make sure to save your configuration before closing the app to preserve your changes.
-
-> [!IMPORTANT]
-> At the moment this is unable to save directly to the Raspberry Pi so you have to manualy bring the KeypadSave.save file onto the board.
+> Make sure to save your configuration before closing the app or Syncing the Keypad to preserve your changes.
